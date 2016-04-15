@@ -1,5 +1,13 @@
 module BSplines
 
-# package code goes here
+type BSpline
+    α::AbstractVector
+    k::Integer
+end
 
-end # module
+include("basis.jl")
+include("knot_sets.jl")
+
+export BSpline
+
+end
