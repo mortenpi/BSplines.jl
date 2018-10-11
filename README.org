@@ -1,0 +1,15 @@
+#+TITLE: BSplines.jl
+#+AUTHOR: Stefanos Carlström
+#+EMAIL: stefanos.carlstrom@gmail.com
+
+[[https://travis-ci.org/jagot/BSplines.jl][https://travis-ci.org/jagot/BSplines.jl.svg?branch=master]]
+[[https://coveralls.io/github/jagot/BSplines.jl?branch=master][https://coveralls.io/repos/github/jagot/BSplines.jl/badge.svg?branch=master]]
+[[https://codecov.io/gh/jagot/BSplines.jl][https://codecov.io/gh/jagot/BSplines.jl/branch/master/graph/badge.svg]]
+
+#+PROPERTY: header-args:julia :session *julia-BSplines*
+
+Simple library for defining and evaluating B-splines.
+
+* References:
+  - [[http://www.am.qub.ac.uk/users/h.vanderhart/Splinestop.htm][B-spline basis sets: A flexible basis set for solving the Schrödinger equation.]]
+  - [[http://pages.cs.wisc.edu/~deboor/pgs/][Carl de Boor's program archive]]
