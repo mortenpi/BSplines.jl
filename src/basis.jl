@@ -1,4 +1,4 @@
-type BSplineBasis
+struct Basis
     k::Integer
     t::AbstractVector
     x::AbstractVector
@@ -6,7 +6,7 @@ type BSplineBasis
 end
 
 # See http://pages.cs.wisc.edu/~deboor/pgs/bsplvb.f
-function BSplineBasis(k::Integer, t::AbstractVector, x::AbstractVector)
+function Basis(k::Integer, t::AbstractVector, x::AbstractVector)
     basis = [zeros(eltype(x), (length(x),length(t)-kk)) for kk = 1:k]
 
     #=
@@ -33,22 +33,16 @@ function BSplineBasis(k::Integer, t::AbstractVector, x::AbstractVector)
         end
     end
 
-    BSplineBasis(k, t, x, basis)
+    Basis(k, t, x, basis)
 end
 
 #=
 \[f(x)=\sum_i\alpha_iB_{i,k,t}(x)\equiv B(x)\vec{\alpha} = \langle B|\vec{\alpha}\rangle.\]
 =#
 
-import Base.A_mul_B!
-A_mul_B!(Y::Vector, A::Matrix, B::Range) = A_mul_B!(Y,A,collect(B))
-
-import Base.call
-function call(B::BSplineBasis, S::BSpline)
+function (B::Basis)(S::Spline)
     if S.k > B.k
         error("No support for splines of order $(S.k) in basis of order $(B.k)")
     end
     B.B[S.k]*S.α
 end
-
-export BSplineBasis, call

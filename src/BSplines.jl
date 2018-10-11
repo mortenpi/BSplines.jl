@@ -1,13 +1,11 @@
 module BSplines
 
-type BSpline
+mutable struct Spline
     α::AbstractVector
     k::Integer
 end
 
 include("basis.jl")
 include("knot_sets.jl")
-
-export BSpline
 
 end
