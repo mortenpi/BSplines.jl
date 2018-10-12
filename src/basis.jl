@@ -53,17 +53,31 @@ function (basis::Basis)(x::AbstractVector)
     Bᵢ
 end
 
-function (basis::Basis)(::UniformScaling)
+"""
+    basis(f)
+
+Generate the scalar operator corresponding to `f(x)` on the BSpline
+`basis`.
+"""
+function (basis::Basis)(f::Function)
     m = size(basis.B[end],2)
     k = order(basis.t)
     B = BandedMatrix{eltype(basis.t)}(undef, m,m, 0, k-1)
+    fwx = weights(basis) .* f.(locs(basis))
     for j = 1:m
         for i = max(1,j-k):j
-            B[i,j] = dot(basis.B[end][:,i], (weights(basis) .* basis.B[end][:,j]))
+            B[i,j] = dot(basis.B[end][:,i], (fwx .* basis.B[end][:,j]))
         end
     end
     Symmetric(B)
 end
+
+"""
+    basis(I)
+
+Return the overlap matrix of `basis`.
+"""
+(basis::Basis)(::UniformScaling) = basis(one)
 
 locs(basis::Basis) = basis.x
 weights(basis::Basis) = basis.w
