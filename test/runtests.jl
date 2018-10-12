@@ -68,4 +68,26 @@ end
         testbasis(range(-0.5,stop=0.6,length=40))
         testbasis(range(0.5,stop=1.6,length=40))
     end
+
+    @testset "Overlap matrix" begin
+        B = basis(I)
+        # # The reference is generated thusly:
+        # Br = zeros{Any}(undef,4,4)
+        # using SymPy
+        # @syms x
+        # Bs = [piecewise(((2x-1)^2, (Gt(x,0)) ∧ Lt(2x,1)),(0,true)),
+        #       piecewise((2//3*(1-(3x-1)^2), (Gt(x,0)) ∧ Lt(2x,1)), (2*(x-1)^2, (Gt(2x,1)) ∧ Lt(x,1)),(0,true)),
+        #       piecewise((2*x^2, (Gt(x,0)) ∧ Lt(2x,1)), (2//3*(1-(3x-2)^2), (Gt(2x,1)) ∧ Lt(x,1)),(0,true)),
+        #       piecewise(((2x-1)^2, (Gt(2x,1)) ∧ Lt(x,1)),(0,true))]
+        # for i = 1:4
+        #     for j = 1:4
+        #         Br[i,j] = integrate(Bs[i]*Bs[j],x)
+        #     end
+        # end
+        Br = [  1/10  7/120  1/120      0
+                7/120    1/6   1/10  1/120
+                1/120   1/10    1/6  7/120
+                0  1/120  7/120   1/10]
+        @test norm(B-Br) < 1e-15
+    end
 end
