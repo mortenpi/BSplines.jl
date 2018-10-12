@@ -25,3 +25,10 @@ using Test
 
     @test eltype(t) <: Real
 end
+
+@testset "Quadrature" begin
+    t = LinearKnotSet(1, 0, 1, 2)
+    x,w = BSplines.lgwt(t)
+    @test all(w .== 1/4)
+    @test x == [-1,1,-1,1]/(4*√3) + [1,1,3,3]/4
+end
