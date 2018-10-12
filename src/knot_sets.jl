@@ -34,7 +34,7 @@ eltype(t::AbstractKnotSet{T}) where T = T
 similar(t::AbstractKnotSet{T}) where T = Vector{T}(undef, length(t))
 
 function show(io::IO, t::AbstractKnotSet)
-    write(io, "$(typeof(t)) of order k=$(order(t)) on [$(first(t)),$(last(t))]")
+    write(io, "$(typeof(t)) of order k=$(order(t)) on [$(first(t)),$(last(t))] ($(numintervals(t)) intervals)")
 end
 
 struct LinearKnotSet{T} <: AbstractKnotSet{T}
@@ -61,5 +61,22 @@ LinearKnotSet(k::Integer, a::Integer, b::Integer, N::Integer) =
 #     @assert t[2][1]+t[2][2] == N
 #     [logspace(log10(ap),log10(t[1]), t[2][1]); linspace(t[1],b,t[2][2]+1)[2:end]]
 # end
+
+@recipe function plot(t::AbstractKnotSet)
+    markershape --> :circle
+    y = similar(t)
+    y′ = 1
+    t′ = -Inf
+    for i in eachindex(t)
+        if t[i] == t′
+            y′ += 1
+        else
+            y′ = 1
+        end
+        t′ = t[i]
+        y[i] = y′
+    end
+    collect(t),y
+end
 
 export LinearKnotSet, order, numintervals

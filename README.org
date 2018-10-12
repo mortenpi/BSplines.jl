@@ -10,6 +10,27 @@
 
 Simple library for defining and evaluating B-splines.
 
-* References:
+* Usage
+  #+BEGIN_SRC julia :exports both :results verbatim
+    using BSplines
+
+    t = LinearKnotSet(7, 0, 1, 10)
+  #+END_SRC
+
+  #+RESULTS:
+  : LinearKnotSet{Float64} of order k=7 on [0.0,1.0] (10 intervals)
+
+  [[file:figures/knot-set.svg]]
+
+  #+BEGIN_SRC julia :exports both :results verbatim
+    basis = BSplines.Basis(t)
+  #+END_SRC
+
+  #+RESULTS:
+  : BSpline basis with LinearKnotSet{Float64} of order k=7 on [0.0,1.0] (10 intervals)
+
+  [[file:figures/basis.svg]]
+
+* References
   - [[http://www.am.qub.ac.uk/users/h.vanderhart/Splinestop.htm][B-spline basis sets: A flexible basis set for solving the Schrödinger equation.]]
   - [[http://pages.cs.wisc.edu/~deboor/pgs/][Carl de Boor's program archive]]

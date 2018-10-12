@@ -2,6 +2,8 @@ using LinearAlgebra
 using SparseArrays
 using BandedMatrices
 
+import Base: show
+
 struct Basis
     t::AbstractKnotSet
     x::AbstractVector
@@ -65,5 +67,15 @@ end
 
 locs(basis::Basis) = basis.x
 weights(basis::Basis) = basis.w
+
+function show(io::IO, basis::Basis)
+    write(io, "BSpline basis with $(basis.t)")
+end
+
+@recipe function plot(basis::Basis, n=100)
+    x = range(first(basis.t), stop=last(basis.t),
+              length=n*numintervals(basis.t))
+    x, Matrix(basis(x)[end])
+end
 
 export locs, weights
