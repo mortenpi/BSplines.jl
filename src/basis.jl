@@ -1,4 +1,6 @@
+using LinearAlgebra
 using SparseArrays
+using BandedMatrices
 
 struct Basis
     t::AbstractKnotSet
@@ -47,6 +49,18 @@ function (basis::Basis)(x::AbstractVector)
           for kk = 1:order(basis.t)]
     evaluate!(Bᵢ, basis.t, x)
     Bᵢ
+end
+
+function (basis::Basis)(::UniformScaling)
+    m = size(basis.B[end],2)
+    k = order(basis.t)
+    B = BandedMatrix{eltype(basis.t)}(undef, m,m, 0, k-1)
+    for j = 1:m
+        for i = max(1,j-k):j
+            B[i,j] = dot(basis.B[end][:,i], (weights(basis) .* basis.B[end][:,j]))
+        end
+    end
+    Symmetric(B)
 end
 
 locs(basis::Basis) = basis.x
