@@ -169,4 +169,27 @@ end
             @test norm(∂′n[n]-∂′ref[n])/abs(1e-16 + norm(∂′ref[n])) < 1e-14
         end
     end
+
+    @testset "Dirichlet0 conditions" begin
+        k = 3
+        t = LinearKnotSet(k, 0, 2, 4)
+        basis = BSplines.Basis(t, 0, 0)
+
+        ∂n = [derop(basis, n) for n ∈ 1:k-1]
+        ∂ref = [[ 0    0       0       0      0     0
+                  0   0//1    3//8    1//24   0     0
+                  0  -3//8    0//1    5//12  1//24  0
+                  0  -1//24  -5//12   0//1   3//8   0
+                  0    0     -1//24  -3//8   0//1   0
+                  0    0       0       0      0     0],
+                [ 0    0      0      0      0    0
+                  0  -8//3   1//3   1//3    0    0
+                  0   1//3  -2//1   2//3   1//3  0
+                  0   1//3   2//3  -2//1   1//3  0
+                  0    0     1//3   1//3  -8//3  0
+                  0    0      0      0      0    0]]
+        for n ∈ 1:k-1
+            @test norm(∂n[n]-∂ref[n]) < 1e-15
+        end
+    end
 end

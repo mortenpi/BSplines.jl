@@ -10,10 +10,12 @@ struct Basis
     w::AbstractVector
     B::Vector{AbstractMatrix}
     ∂B::Vector{AbstractMatrix}
+    bl
+    br
 end
 
 # See http://pages.cs.wisc.edu/~deboor/pgs/bsplvb.f
-function evaluate!(Bᵢ, t::AbstractKnotSet, x::AbstractVector)
+function evaluate!(Bᵢ, t::AbstractKnotSet{T}, x::AbstractVector, bl::T, br::T) where T
     #=
     \[B_{i,1,t}(x)=\begin{cases}
     1, & t_i\leq x < t_{i+1}\\
@@ -37,9 +39,12 @@ function evaluate!(Bᵢ, t::AbstractKnotSet, x::AbstractVector)
             Bᵢ[kk][:,i] = f₁.*Bᵢ[kk-1][:,i] + f₂.*Bᵢ[kk-1][:,i+1]
         end
     end
+    Bᵢ[end][:,1] *= bl
+    Bᵢ[end][:,end] *= br
 end
 
-function evaluate!(∂Bᵢ, Bᵢ, t::BSplines.AbstractKnotSet{T}, x::AbstractVector) where T
+function evaluate!(∂Bᵢ, Bᵢ, t::BSplines.AbstractKnotSet{T}, x::AbstractVector,
+                   bl::T, br::T) where T
     #=
     \[\partial B_{i,k,t}(x) = (k-1)
     \left[
@@ -88,14 +93,20 @@ function evaluate!(∂Bᵢ, Bᵢ, t::BSplines.AbstractKnotSet{T}, x::AbstractVec
         - Compute \(\partial^{(m)}B_{i,k,t}\) using X(15)
     =#
 
-    evaluate!(Bᵢ, t, x)
+    evaluate!(Bᵢ, t, x, bl, br)
 
     k = order(t)
     N = length(t) - k
     α = Matrix{T}(undef, N, k)
     for i ∈ 1:N
         α[:,1] .= zero(T)
-        α[i,1] = one(T)
+        α[i,1] = if i == 1
+            bl
+        elseif i == N
+            br
+        else
+            one(T)
+        end
         for m ∈ 1:k-1
             ∂Bᵢ[m][:,i] .= zero(T)
             for j ∈ 1:N
@@ -111,20 +122,21 @@ function evaluate!(∂Bᵢ, Bᵢ, t::BSplines.AbstractKnotSet{T}, x::AbstractVec
     end
 end
 
-function Basis(t::AbstractKnotSet)
+function Basis(t::AbstractKnotSet{T}, bl::T=one(T), br::T=one(T)) where T
     x,w = lgwt(t)
     B = [spzeros(eltype(x), length(x), length(t)-kk)
          for kk = 1:order(t)]
     ∂B = [spzeros(eltype(x), length(x), length(t)-kk)
           for kk = 1:order(t)]
-    evaluate!(∂B, B, t, x)
-    Basis(t, x, w, B, ∂B)
+    evaluate!(∂B, B, t, x, bl, br)
+    Basis(t, x, w, B, ∂B, bl, br)
 end
+Basis(t::AbstractKnotSet{T}, bl, br) where T = Basis(t, T(bl), T(br))
 
 function (basis::Basis)(x::AbstractVector)
     Bᵢ = [spzeros(eltype(x), length(x), length(basis.t)-kk)
           for kk = 1:order(basis.t)]
-    evaluate!(Bᵢ, basis.t, x)
+    evaluate!(Bᵢ, basis.t, x, basis.bl, basis.br)
     Bᵢ
 end
 
@@ -158,13 +170,13 @@ function derop(basis::Basis, o::Integer)
     m = size(basis.B[end],2)
     k = order(basis.t)
     D = BandedMatrix{eltype(basis.t)}(undef, m,m, k-1, k-1)
+    symmetric = o == 2 && basis.bl == 0 && basis.br == 0
     for j = 1:m
-        for i = max(1,j-k):min(j+k,m) # (iseven(o) ? j : min(j+k,m))
+        for i = max(1,j-k):(symmetric ? j : min(j+k,m))
             D[i,j] = dot(basis.B[end][:,i], (weights(basis) .* basis.∂B[o][:,j]))
         end
     end
-    # iseven(o) ? Symmetric(D) : D
-    D
+    symmetric ? Symmetric(D) : D
 end
 
 locs(basis::Basis) = basis.x
