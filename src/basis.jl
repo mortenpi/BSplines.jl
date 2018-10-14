@@ -9,6 +9,7 @@ struct Basis
     x::AbstractVector
     w::AbstractVector
     B::Vector{AbstractMatrix}
+    ∂B::Vector{AbstractMatrix}
 end
 
 # See http://pages.cs.wisc.edu/~deboor/pgs/bsplvb.f
@@ -38,12 +39,86 @@ function evaluate!(Bᵢ, t::AbstractKnotSet, x::AbstractVector)
     end
 end
 
+function evaluate!(∂Bᵢ, Bᵢ, t::BSplines.AbstractKnotSet{T}, x::AbstractVector) where T
+    #=
+    \[\partial B_{i,k,t}(x) = (k-1)
+    \left[
+    \frac{B_{i,k-1,t}(x)}{t_{i+k-1}-t_i}-
+    \frac{B_{i+1,k-1,t}(x)}{t_{i+k}-t_{i+1}}
+    \right]\]
+    \[\begin{aligned}
+    \partial^{(n)} B_{i,k,t}(x)
+    &= (k-1)
+    \left[
+    \frac{\partial^{(n-1)} B_{i,k-1,t}(x)}{t_{i+k-1}-t_i}-
+    \frac{\partial^{(n-1)} B_{i+1,k-1,t}(x)}{t_{i+k}-t_{i+1}}
+    \right] \\
+    &=
+    (k-1)(k-2)
+    \left[
+    \frac{
+    \frac{\partial^{(n-2)}B_{i,k-2,t}(x)}{t_{i+k-2}-t_i}-
+    \frac{\partial^{(n-2)}B_{i+1,k-2,t}(x)}{t_{i+k-1}-t_{i+1}}
+    }{t_{i+k-1}-t_i}-
+    \frac{
+    \frac{\partial^{(n-2)}B_{i+1,k-2,t}(x)}{t_{i+k-1}-t_{i+1}}-
+    \frac{\partial^{(n-2)}B_{i+2,k-2,t}(x)}{t_{i+k}-t_{i+2}}
+    }{t_{i+k}-t_{i+1}}
+    \right]
+    \end{aligned}\]
+
+
+    de Boor X(15):
+    \[ \partial^{(m)}\sum_j \alpha_j B_{j,k,t}
+    =\sum_j \alpha_j^{(m+1)} B_{j,k-m,t}\]
+
+    where [de Boor X(16)]
+
+    \[\alpha_r^{(m+1)}=
+    \begin{cases}
+    \alpha_r, & m=0,\\
+    \frac{\alpha_r^{(m)}-\alpha_{r-1}^{(m)}}{(t_{r+k-m}-t_r)/(k-m)}, & m>0.
+    \end{cases}\]
+
+    To calculate \(\partial^{(m)}B_{i,k,t}\), \(\forall m\in[1,k-1]\), we do
+
+    - \(\forall i\in[1,N]\), set \(\alpha^{(1)}_j = \delta_{ij}\)
+      - \(\forall m\in[1,k-1]\)
+        - Compute \(\alpha^{(m+1)}\) using X(16)
+        - Compute \(\partial^{(m)}B_{i,k,t}\) using X(15)
+    =#
+
+    evaluate!(Bᵢ, t, x)
+
+    k = order(t)
+    N = length(t) - k
+    α = Matrix{T}(undef, N, k)
+    for i ∈ 1:N
+        α[:,1] .= zero(T)
+        α[i,1] = one(T)
+        for m ∈ 1:k-1
+            ∂Bᵢ[m][:,i] .= zero(T)
+            for j ∈ 1:N
+                δt = t[j+k-m] - t[j]
+                if δt == 0
+                    α[j,m+1] = 0
+                    continue
+                end
+                α[j,m+1] = (k-m)*(α[j,m]-(j>1 ? α[j-1,m] : 0))/δt
+                ∂Bᵢ[m][:,i] += α[j,m+1]*Bᵢ[k-m][:,j]
+            end
+        end
+    end
+end
+
 function Basis(t::AbstractKnotSet)
     x,w = lgwt(t)
     B = [spzeros(eltype(x), length(x), length(t)-kk)
          for kk = 1:order(t)]
-    evaluate!(B, t, x)
-    Basis(t, x, w, B)
+    ∂B = [spzeros(eltype(x), length(x), length(t)-kk)
+          for kk = 1:order(t)]
+    evaluate!(∂B, B, t, x)
+    Basis(t, x, w, B, ∂B)
 end
 
 function (basis::Basis)(x::AbstractVector)
@@ -79,6 +154,19 @@ Return the overlap matrix of `basis`.
 """
 (basis::Basis)(::UniformScaling) = basis(one)
 
+function derop(basis::Basis, o::Integer)
+    m = size(basis.B[end],2)
+    k = order(basis.t)
+    D = BandedMatrix{eltype(basis.t)}(undef, m,m, k-1, k-1)
+    for j = 1:m
+        for i = max(1,j-k):min(j+k,m) # (iseven(o) ? j : min(j+k,m))
+            D[i,j] = dot(basis.B[end][:,i], (weights(basis) .* basis.∂B[o][:,j]))
+        end
+    end
+    # iseven(o) ? Symmetric(D) : D
+    D
+end
+
 locs(basis::Basis) = basis.x
 weights(basis::Basis) = basis.w
 
@@ -92,4 +180,4 @@ end
     x, Matrix(basis(x)[end])
 end
 
-export locs, weights
+export locs, weights, derop
