@@ -44,17 +44,32 @@ end
 LinearKnotSet(k::Integer, a::Integer, b::Integer, N::Integer) =
     LinearKnotSet(k, range(a, stop=b, length=N+1))
 
+struct ExpKnotSet{T} <: AbstractKnotSet{T}
+    k::Integer
+    exponents::AbstractRange{T}
+    base::T
+    t::AbstractVector{T}
+    include0::Bool
+end
+function ExpKnotSet(k::Integer, a::T, b::T, N::Integer;
+                    base::T=T(10), include0::Bool=true) where T
+    exponents = range(a, stop=b, length=include0 ? N : N+1)
+    t = base .^ exponents
+    ExpKnotSet(k, exponents, eltype(t)(base), include0 ? vcat(0,t) : t, include0)
+end
+
+function show(io::IO, t::ExpKnotSet)
+    write(io, "$(typeof(t)) of order k=$(order(t)) on [")
+    t.include0 && write(io, "0,")
+    write(io, "$(t.base^first(t.exponents))..$(t.base^last(t.exponents))] ($(numintervals(t)) intervals)")
+end
+
 # function arcsin_knot_set(k::Integer, a::Integer, b::Integer, N::Integer)
 #     N2 = N/2
 #     arcsin.(range(-N2, stop=N2, lengthN+1)/N2)*(b-a)/π+(a+b)/2
 # end
 
 # arcsin_half_knot_set(a, b, N) = arcsin(linspace(0,N,N+1)/N)*(b-a)*2.0/π+a
-
-# function exp_knot_set(a, b, N)
-#     ap = a != 0 ? a : 1e-1
-#     logspace(log10(ap),log10(b),N)
-# end
 
 # function exp_linear_knot_set(a, b, N)
 #     ap = a != 0 ? a : 1e-1
@@ -79,4 +94,4 @@ LinearKnotSet(k::Integer, a::Integer, b::Integer, N::Integer) =
     collect(t),y
 end
 
-export LinearKnotSet, order, numintervals
+export LinearKnotSet, ExpKnotSet, order, numintervals
