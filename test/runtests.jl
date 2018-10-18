@@ -215,3 +215,17 @@ end
         end
     end
 end
+
+@testset "Splines" begin
+    k = 7
+    t = LinearKnotSet(k, 0, 1, 10)
+    basis = BSplines.Basis(t)
+    x = range(first(t), stop=last(t), length=101)[1:end-1] # Due to issue #2
+    B = basis(x)
+    for n = 1:k-1
+        c = rand(n)
+        f = x -> sum(c[i]*x^(i-1) for i in eachindex(c))
+        S = Spline(f, basis)
+        @test norm(S(B) - f.(x))/abs(1e-16 + norm(f.(x))) < 1e-14
+    end
+end
