@@ -15,4 +15,6 @@ function (S::Spline)(B::Vector{M}) where {M<:AbstractMatrix}
 end
 (S::Spline)(B::Basis) =  S(B.B)
 
+Spline(f::Function, basis::Basis) = Spline(basis.B[end]\f.(locs(basis)), order(basis.t))
+
 export Spline
