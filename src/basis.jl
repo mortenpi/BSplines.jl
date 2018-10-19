@@ -137,7 +137,7 @@ function (basis::Basis)(x::AbstractVector)
     Bᵢ = [spzeros(eltype(x), length(x), length(basis.t)-kk)
           for kk = 1:order(basis.t)]
     evaluate!(Bᵢ, basis.t, x, basis.bl, basis.br)
-    Bᵢ
+    Bᵢ[end]
 end
 
 """
@@ -189,7 +189,7 @@ end
 @recipe function plot(basis::Basis, n=100)
     x = range(first(basis.t), stop=last(basis.t),
               length=n*numintervals(basis.t))
-    x, Matrix(basis(x)[end])
+    x, Matrix(basis(x))
 end
 
 export locs, weights, derop
