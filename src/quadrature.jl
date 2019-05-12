@@ -21,7 +21,8 @@ end
 function lgwt(t::AbstractKnotSet{T}) where T
     k = order(t)
     N = numintervals(t)
-    x, w = gausslegendre(k+1)
+    @warn "Non-standard k"
+    x, w = gausslegendre(k+20)
     xo = zeros(T, N*length(x))
     wo = zeros(T, N*length(x))
 
