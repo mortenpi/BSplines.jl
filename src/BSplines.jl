@@ -1,6 +1,6 @@
 module BSplines
 
-using Polynomials: Poly
+using Polynomials: Polynomials, Poly, polyder
 
 using RecipesBase
 
@@ -29,6 +29,9 @@ function (pp::PiecewisePoly2)(x::Real)
     (pp.ps[i])(x)
 end
 
+function Polynomials.polyder(pp::PiecewisePoly2, k::Integer=1)
+    PiecewisePoly2(pp.ts, polyder.(pp.ps, k))
+end
 
 """
     abstract type AbstractBSpline
