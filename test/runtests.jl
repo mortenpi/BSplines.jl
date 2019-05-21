@@ -10,62 +10,104 @@ function vecdist(a::AbstractVector, b::AbstractVector,
 end
 
 @testset "Knot sets" begin
-    @testset "Linear" begin
-        t = LinearKnotSet(7, 0, 1, 10)
-        @test order(t) == 7
-        @test numintervals(t) == 10
-        @test length(t) == 23
-        @test first(t) == 0
-        @test last(t) == 1
-        for i = 1:7
-            @test t[i] == 0
-            @test t[end-i+1] == 1
-        end
-        tt = range(0, stop=1, length=11)
-        for i = 7:17
-            @test t[i] == tt[i-6]
-        end
+    @testset "Arbitrary (KnotSet)" begin
+        let t = KnotSet(1, [1, 2])
+            @test order(t) == 1
+            @test length(t) == 2
+            @test numintervals(t) == 1
 
-        ttt = collect(t)
-        @test length(t) == length(ttt)
-        for i ∈ eachindex(t)
-            @test t[i] == ttt[i]
+            @test t[1] == 1
+            @test t[2] == 2
+            @test_throws BoundsError t[0]
+            @test_throws BoundsError t[-5]
+            @test_throws BoundsError t[3]
+            @test_throws BoundsError t[10]
+
+            @test collect(t) == [1, 2]
         end
+        let t = KnotSet(2, [-1, 0, 10, 3, 9])
+            @test length(t) == 5
+            @test numintervals(t) == 3
+
+            @test first(t) == -1
+            @test last(t) == 10
+            @test eachindex(t) == 1:5
+            @test lastindex(t) == 5
+
+            @test collect(t) == [-1, 0, 3, 9, 10]
+        end
+        @test_throws DomainError KnotSet(2, [1, 2])
+    end
+
+    @testset "Linear (LinearKnotSet)" begin
+        t = LinearKnotSet(1, 0, 1, 3)
+        @test order(t) == 1
+        @test length(t) == 3
+        @test numintervals(t) == 2
+
+        for i = 1:3
+            @test t[i] == 0.5*(i - 1)
+        end
+        @test_throws BoundsError t[0]
+        @test_throws BoundsError t[-5]
+        @test_throws BoundsError t[4]
+        @test_throws BoundsError t[100]
 
         @test eltype(t) <: Real
-    end
 
-    @testset "Exponential" begin
-        t = ExpKnotSet(7, -8, 1, 31)
-        @test order(t) == 7
-        @test numintervals(t) == 31
+        t = LinearKnotSet(3, 0, 1, 11)
+        @test order(t) == 3
+        @test length(t) == 15
+        @test numintervals(t) == 12
+
         @test first(t) == 0
-        @test last(t) == 10
+        @test last(t) == 1
+        @test eachindex(t) == 1:15
+        @test lastindex(t) == 15
 
-        t′ = ExpKnotSet(7, -8, 1, 31, include0=false)
-        @test order(t′) == 7
-        @test numintervals(t′) == 31
-        @test first(t′) == 1e-8
-        @test last(t′) == 10
-
-        t′′ = ExpKnotSet(7, -8, 1, 31, base=2, include0=false)
-        @test order(t′′) == 7
-        @test numintervals(t′′) == 31
-        @test first(t′′) == 1/256
-        @test last(t′′) == 2
+        for i = 1:3
+             @test t[i] == 0
+             @test t[end-i+1] == 1
+        end
+        for (i, x) = enumerate(range(0, stop=1, length=11))
+            @test t[i+2] == x
+        end
+        for (x, y) in zip(t, collect(t))
+            @test x == y
+        end
     end
+
+    # @testset "Exponential" begin
+    #     t = ExpKnotSet(7, -8, 1, 31)
+    #     @test order(t) == 7
+    #     @test numintervals(t) == 31
+    #     @test first(t) == 0
+    #     @test last(t) == 10
+    #
+    #     t′ = ExpKnotSet(7, -8, 1, 31, include0=false)
+    #     @test order(t′) == 7
+    #     @test numintervals(t′) == 31
+    #     @test first(t′) == 1e-8
+    #     @test last(t′) == 10
+    #
+    #     t′′ = ExpKnotSet(7, -8, 1, 31, base=2, include0=false)
+    #     @test order(t′′) == 7
+    #     @test numintervals(t′′) == 31
+    #     @test first(t′′) == 1/256
+    #     @test last(t′′) == 2
+    # end
 end
 
 @testset "Quadrature" begin
-    t = LinearKnotSet(1, 0, 1, 2)
-    x,w = BSplines.lgwt(t)
+    t = LinearKnotSet(1, 0, 1, 3)
+    x, w = BSplines.lgwt(t)
     @test all(w .== 1/4)
     @test x == [-1,1,-1,1]/(4*√3) + [1,1,3,3]/4
 end
 
 @testset "Basis" begin
     k = 3
-    t = LinearKnotSet(k, 0, 1, 2)
+    t = LinearKnotSet(k, 0, 1, 3)
     basis = BSplines.Basis(t)
     @testset "Eval on subintervals" begin
         x₁ = range(-1,stop=-0.5,length=10)
@@ -127,7 +169,7 @@ end
         end
 
         k′ = 7
-        t′ = LinearKnotSet(k′, 0, 1, 3)
+        t′ = LinearKnotSet(k′, 0, 1, 4)
         basis′ = BSplines.Basis(t′)
 
         ∂′n = [derop(basis′, n) for n ∈ 1:k′-1]
@@ -194,7 +236,7 @@ end
 
     @testset "Dirichlet0 conditions" begin
         k = 3
-        t = LinearKnotSet(k, 0, 2, 4)
+        t = LinearKnotSet(k, 0, 2, 5)
         basis = BSplines.Basis(t, 0, 0)
 
         ∂n = [derop(basis, n) for n ∈ 1:k-1]
